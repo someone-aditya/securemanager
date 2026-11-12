@@ -3,341 +3,298 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SecureManager — Cloud Password Manager</title>
+    <title>Secure Family Password Manager</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- CryptoJS for Client-Side AES Encryption -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-    <style>
-        body {
-            background-color: #09090b;
-            background-image: radial-gradient(#27272a 1px, transparent 1px);
-            background-size: 24px 24px;
-        }
-    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax5/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 </head>
-<body class="text-zinc-100 min-h-screen font-sans antialiased flex flex-col items-center justify-center p-4">
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between">
+
+    <!-- Navbar -->
+    <header class="bg-slate-800 border-b border-slate-700 p-4 shadow-md">
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold tracking-wide">Family Password Manager</h1>
+            <div id="user-info" class="hidden flex items-center gap-4">
+                <span id="user-email" class="text-sm text-slate-300"></span>
+                <button onclick="logout()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm transition">Logout</button>
+            </div>
+        </div>
+    </header>
 
     <!-- Main Container -->
-    <div class="w-full max-w-2xl bg-zinc-950/90 backdrop-blur-md border border-zinc-800 rounded-2xl p-6 md:p-8 shadow-2xl">
-        
-        <!-- Header -->
-        <div class="flex justify-between items-center pb-6 border-b border-zinc-800/80 mb-6">
-            <div>
-                <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-                    <span class="text-emerald-400">◈</span> SecureManager
-                </h1>
-                <p class="text-xs text-zinc-400 mt-0.5">End-to-End Encrypted Cloud Storage</p>
-            </div>
-            <button id="logoutBtn" onclick="handleLogout()" class="hidden text-xs bg-zinc-900 hover:bg-zinc-800 text-zinc-300 px-3.5 py-2 rounded-lg border border-zinc-700 transition">
-                Sign Out
-            </button>
-        </div>
+    <main class="max-w-4xl mx-auto p-4 w-full flex-grow">
 
-        <!-- LANDING / AUTH SCREEN -->
-        <div id="authSection" class="space-y-5 max-w-md mx-auto py-4">
-            <div class="text-center space-y-1">
-                <h2 id="authTitle" class="text-xl font-semibold text-white">Welcome Back</h2>
-                <p id="authSubtitle" class="text-xs text-zinc-400">Sign in to decrypt and access your saved credentials.</p>
-            </div>
-
-            <form onsubmit="handleAuth(event)" class="space-y-4">
-                <div>
-                    <label class="block text-xs text-zinc-400 mb-1">Email Address</label>
-                    <input type="email" id="emailInput" required placeholder="you@example.com" class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">
-                </div>
-                <div>
-                    <label class="block text-xs text-zinc-400 mb-1">Master Account Password</label>
-                    <input type="password" id="passwordInput" required placeholder="••••••••••••" class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500">
-                </div>
-                <button type="submit" id="authSubmitBtn" class="w-full bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-semibold py-2.5 rounded-xl text-sm transition">
-                    Sign In
-                </button>
-            </form>
-
-            <div class="text-center pt-2">
-                <button onclick="toggleAuthMode()" id="toggleAuthBtn" class="text-xs text-zinc-400 hover:text-white transition">
-                    Don't have an account? <span class="text-emerald-400 underline">Create one</span>
-                </button>
-            </div>
-            <p id="authError" class="text-xs text-red-400 text-center hidden"></p>
-        </div>
-
-        <!-- DASHBOARD SECTION -->
-        <div id="dashboardSection" class="hidden space-y-6">
+        <!-- Auth Section -->
+        <div id="auth-container" class="max-w-md mx-auto mt-12 bg-slate-800 p-8 rounded-xl shadow-lg border border-slate-700">
+            <h2 id="auth-title" class="text-2xl font-bold mb-6 text-center">Login to Vault</h2>
             
-            <!-- Add / Edit Form -->
-            <form onsubmit="saveEntry(event)" class="bg-zinc-900/60 border border-zinc-800 p-4 rounded-xl space-y-3">
-                <div class="flex justify-between items-center">
-                    <h3 id="formHeader" class="text-sm font-medium text-zinc-200">Add New Credential</h3>
-                    <button type="button" id="cancelEditBtn" onclick="resetForm()" class="hidden text-xs text-zinc-400 hover:text-white">Cancel Edit</button>
+            <form id="auth-form" onsubmit="handleAuth(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Email / ID</label>
+                    <input type="email" id="auth-email" required class="w-full bg-slate-900 border border-slate-750 rounded p-2 text-white focus:outline-none focus:border-blue-500">
                 </div>
-                <input type="hidden" id="editEntryId">
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <input type="text" id="accountName" placeholder="Platform (e.g., Gmail, GitHub)" required class="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
-                    <input type="text" id="accountUser" placeholder="Email or Username" required class="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Master Password</label>
+                    <input type="password" id="auth-password" required class="w-full bg-slate-900 border border-slate-750 rounded p-2 text-white focus:outline-none focus:border-blue-500">
                 </div>
-
-                <div class="flex gap-2">
-                    <input type="text" id="accountPass" placeholder="Password" required class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500">
-                    <button type="button" onclick="generateStrongPassword()" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs px-3 rounded-lg border border-zinc-700 whitespace-nowrap">
-                        Generate
-                    </button>
-                </div>
-
-                <button type="submit" id="saveBtn" class="w-full bg-white hover:bg-zinc-200 text-black font-semibold py-2 rounded-lg text-sm transition">
-                    Save to Vault
-                </button>
+                <button type="submit" id="auth-submit-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded transition">Login</button>
             </form>
 
-            <!-- Search Bar -->
-            <div>
-                <input type="text" id="searchInput" onkeyup="filterVault()" placeholder="Search saved accounts..." class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-zinc-600">
-            </div>
-
-            <!-- Saved Accounts List -->
-            <div id="vaultContainer" class="space-y-3 max-h-96 overflow-y-auto pr-1">
-                <!-- Items rendered via JS -->
+            <div class="mt-4 text-center">
+                <button onclick="toggleAuthMode()" id="auth-toggle-btn" class="text-sm text-blue-400 hover:underline">Don't have an account? Create one</button>
             </div>
         </div>
 
-    </div>
+        <!-- Dashboard Section -->
+        <div id="dashboard-container" class="hidden space-y-6 mt-6">
+            
+            <!-- Add / Edit Credential Form Card -->
+            <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-md">
+                <h3 id="form-heading" class="text-lg font-semibold mb-4">Add New Credential</h3>
+                <form id="credential-form" onsubmit="saveCredential(event)" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <input type="hidden" id="cred-id">
+                    <div>
+                        <label class="block text-xs uppercase text-slate-400 mb-1">Platform Name</label>
+                        <input type="text" id="platform-name" placeholder="e.g. Gmail, Netflix" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs uppercase text-slate-400 mb-1">Username / ID</label>
+                        <input type="text" id="platform-username" placeholder="e.g. user@gmail.com" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs uppercase text-slate-400 mb-1">Password</label>
+                        <input type="text" id="platform-password" placeholder="Password" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white">
+                    </div>
+                    <div class="md:col-span-3 flex gap-2">
+                        <button type="submit" id="save-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded text-sm font-medium transition">Save Credential</button>
+                        <button type="button" id="cancel-edit-btn" onclick="resetForm()" class="hidden bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded text-sm transition">Cancel</button>
+                    </div>
+                </form>
+            </div>
 
+            <!-- Credentials List -->
+            <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-md">
+                <h3 class="text-lg font-semibold mb-4">Saved Credentials</h3>
+                <div id="credentials-list" class="space-y-3">
+                    <!-- Populated dynamically -->
+                    <p class="text-slate-400 text-sm">No credentials saved yet.</p>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center py-4 text-xs text-slate-500 border-t border-slate-800">
+        Secure Family Password Manager &bull; Client-side Encrypted
+    </footer>
+
+    <!-- App Logic Script -->
     <script>
-        // ==========================================
-        // PASTE YOUR SUPABASE KEYS BELOW (INSIDE THE QUOTES)
-        // ==========================================
+        // 1. CONFIGURE YOUR SUPABASE KEYS HERE
         const SUPABASE_URL = 'https://jrdfoqijyddfzmplhdlc.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_kZFmMFEpRaTBBpEdzltVcQ_QHOacEah';
-        
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        let isSignUp = false;
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+        let isSignUpMode = false;
         let currentUser = null;
-        let encryptionKey = ""; 
-        let cachedEntries = [];
+        let masterKey = ''; // Derived from user session/password for client encryption
+
+        // Check active session on load
+        window.addEventListener('DOMContentLoaded', async () => {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                currentUser = session.user;
+                masterKey = session.access_token; // Base encryption key layer
+                showDashboard();
+            }
+        });
 
         function toggleAuthMode() {
-            isSignUp = !isSignUp;
-            document.getElementById('authTitle').textContent = isSignUp ? 'Create Your Vault' : 'Welcome Back';
-            document.getElementById('authSubtitle').textContent = isSignUp 
-                ? 'Your login password acts as your encryption key. Do not forget it.' 
-                : 'Sign in to decrypt and access your saved credentials.';
-            document.getElementById('authSubmitBtn').textContent = isSignUp ? 'Sign Up' : 'Sign In';
-            document.getElementById('toggleAuthBtn').innerHTML = isSignUp 
-                ? 'Already have an account? <span class="text-emerald-400 underline">Sign In</span>' 
-                : 'Don\'t have an account? <span class="text-emerald-400 underline">Create one</span>';
-            document.getElementById('authError').classList.add('hidden');
+            isSignUpMode = !isSignUpMode;
+            document.getElementById('auth-title').innerText = isSignUpMode ? 'Create Account' : 'Login to Vault';
+            document.getElementById('auth-submit-btn').innerText = isSignUpMode ? 'Sign Up' : 'Login';
+            document.getElementById('auth-toggle-btn').innerText = isSignUpMode ? 'Already have an account? Login' : "Don't have an account? Create one";
         }
 
-        async function handleAuth(e) {
-            e.preventDefault();
-            const email = document.getElementById('emailInput').value;
-            const password = document.getElementById('passwordInput').value;
-            const errorEl = document.getElementById('authError');
-            const btn = document.getElementById('authSubmitBtn');
+        async function handleAuth(event) {
+            event.preventDefault();
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-password').value;
 
-            errorEl.classList.add('hidden');
-            btn.disabled = true;
-            btn.textContent = 'Processing...';
-
-            let result;
-            if (isSignUp) {
-                result = await supabase.auth.signUp({ email, password });
+            if (isSignUpMode) {
+                const { data, error } = await supabaseClient.auth.signUp({ email, password });
+                if (error) {
+                    alert('Error: ' + error.message);
+                } else {
+                    alert('Account created successfully! You can now log in.');
+                    isSignUpMode = false;
+                    toggleAuthMode();
+                }
             } else {
-                result = await supabase.auth.signInWithPassword({ email, password });
+                const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                if (error) {
+                    alert('Login failed: ' + error.message);
+                } else {
+                    currentUser = data.user;
+                    masterKey = data.session.access_token;
+                    showDashboard();
+                }
             }
-
-            btn.disabled = false;
-            btn.textContent = isSignUp ? 'Sign Up' : 'Sign In';
-
-            if (result.error) {
-                errorEl.textContent = result.error.message;
-                errorEl.classList.remove('hidden');
-                return;
-            }
-
-            currentUser = result.data.user;
-            encryptionKey = password;
-            document.getElementById('passwordInput').value = '';
-
-            showDashboard();
         }
 
-        async function handleLogout() {
-            await supabase.auth.signOut();
+        async function logout() {
+            await supabaseClient.auth.signOut();
             currentUser = null;
-            encryptionKey = "";
-            cachedEntries = [];
-            document.getElementById('dashboardSection').classList.add('hidden');
-            document.getElementById('logoutBtn').classList.add('hidden');
-            document.getElementById('authSection').classList.remove('hidden');
+            masterKey = '';
+            document.getElementById('dashboard-container').classList.add('hidden');
+            document.getElementById('auth-container').classList.remove('hidden');
+            document.getElementById('user-info').classList.add('hidden');
+            document.getElementById('auth-form').reset();
         }
 
         function showDashboard() {
-            document.getElementById('authSection').classList.add('hidden');
-            document.getElementById('dashboardSection').classList.remove('hidden');
-            document.getElementById('logoutBtn').classList.remove('hidden');
-            fetchVault();
+            document.getElementById('auth-container').classList.add('hidden');
+            document.getElementById('dashboard-container').classList.remove('hidden');
+            document.getElementById('user-info').classList.remove('hidden');
+            document.getElementById('user-email').innerText = currentUser.email;
+            loadCredentials();
         }
 
-        async function fetchVault() {
-            const { data, error } = await supabase
-                .from('vaults')
+        async function loadCredentials() {
+            const { data, error } = await supabaseClient
+                .from('credentials')
                 .select('*')
                 .order('created_at', { ascending: false });
 
+            const listContainer = document.getElementById('credentials-list');
             if (error) {
-                alert('Error fetching vault: ' + error.message);
+                listContainer.innerHTML = `<p class="text-red-400 text-sm">Failed to load credentials: ${error.message}</p>`;
                 return;
             }
 
-            cachedEntries = data.map(row => {
-                let decryptedPass = '••••••••';
+            if (!data || data.length === 0) {
+                listContainer.innerHTML = `<p class="text-slate-400 text-sm">No credentials saved yet.</p>`;
+                return;
+            }
+
+            listContainer.innerHTML = '';
+            data.forEach(item => {
+                // Decrypt client-side data
+                let decryptedPlatform = item.platform;
+                let decryptedUsername = item.username;
+                let decryptedPassword = '';
+                
                 try {
-                    const bytes = CryptoJS.AES.decrypt(row.encrypted_password, encryptionKey);
-                    decryptedPass = bytes.toString(CryptoJS.enc.Utf8) || '[Decryption Error]';
-                } catch (e) {
-                    decryptedPass = '[Decryption Error]';
+                    decryptedPlatform = CryptoJS.AES.decrypt(item.platform, masterKey).toString(CryptoJS.enc.Utf8) || item.platform;
+                    decryptedUsername = CryptoJS.AES.decrypt(item.username, masterKey).toString(CryptoJS.enc.Utf8) || item.username;
+                    decryptedPassword = CryptoJS.AES.decrypt(item.password, masterKey).toString(CryptoJS.enc.Utf8);
+                } catch(e) {
+                    decryptedPassword = 'Decryption Error';
                 }
-                return { ...row, plain_password: decryptedPass };
-            });
 
-            renderVault(cachedEntries);
-        }
-
-        function renderVault(entries) {
-            const container = document.getElementById('vaultContainer');
-            container.innerHTML = '';
-
-            if (entries.length === 0) {
-                container.innerHTML = '<p class="text-xs text-zinc-500 text-center py-6">No accounts saved yet. Add one above!</p>';
-                return;
-            }
-
-            entries.forEach(item => {
                 const card = document.createElement('div');
-                card.className = 'bg-zinc-900/90 border border-zinc-800 p-4 rounded-xl flex flex-col gap-2.5';
+                card.className = "bg-slate-900 p-4 rounded-lg border border-slate-700 flex flex-col md:flex-row justify-between items-start md:items-center gap-4";
                 card.innerHTML = `
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <h4 class="font-semibold text-sm text-white">${escapeHTML(item.account_name)}</h4>
-                            <p class="text-xs text-zinc-400">${escapeHTML(item.username)}</p>
-                        </div>
-                        <div class="flex gap-2">
-                            <button onclick="startEdit('${item.id}')" class="text-xs text-emerald-400 hover:text-emerald-300">Edit</button>
-                            <button onclick="deleteEntry('${item.id}')" class="text-xs text-red-400 hover:text-red-300">Delete</button>
-                        </div>
+                    <div>
+                        <h4 class="font-bold text-base text-blue-400">${escapeHtml(decryptedPlatform)}</h4>
+                        <p class="text-sm text-slate-300">ID/User: <span class="font-mono text-slate-100">${escapeHtml(decryptedUsername)}</span></p>
+                        <p class="text-sm text-slate-400">Password: <span id="pass-${item.id}" class="font-mono text-slate-500">••••••••</span></p>
                     </div>
-                    <div class="flex items-center gap-2 pt-1">
-                        <input type="password" id="pass-${item.id}" value="${escapeHTML(item.plain_password)}" readonly class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-zinc-200 font-mono">
-                        <button onclick="toggleVisibility('${item.id}', this)" class="text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-2.5 py-1.5 rounded-lg">Show</button>
-                        <button onclick="copyPassword('${escapeHTML(item.plain_password)}', this)" class="text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-2.5 py-1.5 rounded-lg">Copy</button>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <button onclick="togglePassword('${item.id}', '${escapeHtml(decryptedPassword)}')" class="bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded text-xs">Show</button>
+                        <button onclick="copyToClipboard('${escapeHtml(decryptedPassword)}')" class="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-xs">Copy</button>
+                        <button onclick="editCredential('${item.id}', '${escapeHtml(decryptedPlatform)}', '${escapeHtml(decryptedUsername)}', '${escapeHtml(decryptedPassword)}')" class="bg-amber-600 hover:bg-amber-700 px-3 py-1 rounded text-xs">Edit</button>
+                        <button onclick="deleteCredential('${item.id}')" class="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-xs">Delete</button>
                     </div>
                 `;
-                container.appendChild(card);
+                listContainer.appendChild(card);
             });
         }
 
-        async function saveEntry(e) {
-            e.preventDefault();
-            const editId = document.getElementById('editEntryId').value;
-            const account_name = document.getElementById('accountName').value;
-            const username = document.getElementById('accountUser').value;
-            const plainPass = document.getElementById('accountPass').value;
+        async function saveCredential(event) {
+            event.preventDefault();
+            const id = document.getElementById('cred-id').value;
+            const platform = document.getElementById('platform-name').value;
+            const username = document.getElementById('platform-username').value;
+            const password = document.getElementById('platform-password').value;
 
-            const encrypted_password = CryptoJS.AES.encrypt(plainPass, encryptionKey).toString();
+            // Encrypt sensitive fields client-side
+            const encPlatform = CryptoJS.AES.encrypt(platform, masterKey).toString();
+            const encUsername = CryptoJS.AES.encrypt(username, masterKey).toString();
+            const encPassword = CryptoJS.AES.encrypt(password, masterKey).toString();
 
-            if (editId) {
-                const { error } = await supabase
-                    .from('vaults')
-                    .update({ account_name, username, encrypted_password })
-                    .eq('id', editId);
-                if (error) return alert(error.message);
+            if (id) {
+                // Update existing
+                const { error } = await supabaseClient
+                    .from('credentials')
+                    .update({ platform: encPlatform, username: encUsername, password: encPassword })
+                    .eq('id', id);
+
+                if (error) alert('Update failed: ' + error.message);
             } else {
-                const { error } = await supabase
-                    .from('vaults')
-                    .insert([{ user_id: currentUser.id, account_name, username, encrypted_password }]);
-                if (error) return alert(error.message);
+                // Insert new
+                const { error } = await supabaseClient
+                    .from('credentials')
+                    .insert([{ platform: encPlatform, username: encUsername, password: encPassword, user_id: currentUser.id }]);
+
+                if (error) alert('Save failed: ' + error.message);
             }
 
             resetForm();
-            fetchVault();
+            loadCredentials();
         }
 
-        function startEdit(id) {
-            const entry = cachedEntries.find(item => item.id === id);
-            if (!entry) return;
+        function editCredential(id, platform, username, password) {
+            document.getElementById('cred-id').value = id;
+            document.getElementById('platform-name').value = platform;
+            document.getElementById('platform-username').value = username;
+            document.getElementById('platform-password').value = password;
+            document.getElementById('form-heading').innerText = 'Edit Credential';
+            document.getElementById('save-btn').innerText = 'Update Credential';
+            document.getElementById('cancel-edit-btn').classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
 
-            document.getElementById('editEntryId').value = entry.id;
-            document.getElementById('accountName').value = entry.account_name;
-            document.getElementById('accountUser').value = entry.username;
-            document.getElementById('accountPass').value = entry.plain_password;
-
-            document.getElementById('formHeader').textContent = 'Edit Credential';
-            document.getElementById('saveBtn').textContent = 'Update Credential';
-            document.getElementById('cancelEditBtn').classList.remove('hidden');
+        async function deleteCredential(id) {
+            if (confirm('Are you sure you want to delete this credential?')) {
+                const { error } = await supabaseClient.from('credentials').delete().eq('id', id);
+                if (error) alert('Delete failed: ' + error.message);
+                loadCredentials();
+            }
         }
 
         function resetForm() {
-            document.getElementById('editEntryId').value = '';
-            document.getElementById('accountName').value = '';
-            document.getElementById('accountUser').value = '';
-            document.getElementById('accountPass').value = '';
-            document.getElementById('formHeader').textContent = 'Add New Credential';
-            document.getElementById('saveBtn').textContent = 'Save to Vault';
-            document.getElementById('cancelEditBtn').classList.add('hidden');
+            document.getElementById('credential-form').reset();
+            document.getElementById('cred-id').value = '';
+            document.getElementById('form-heading').innerText = 'Add New Credential';
+            document.getElementById('save-btn').innerText = 'Save Credential';
+            document.getElementById('cancel-edit-btn').classList.add('hidden');
         }
 
-        async function deleteEntry(id) {
-            if (!confirm('Delete this saved account?')) return;
-            const { error } = await supabase.from('vaults').delete().eq('id', id);
-            if (error) return alert(error.message);
-            fetchVault();
-        }
-
-        function toggleVisibility(id, btn) {
-            const input = document.getElementById(`pass-${id}`);
-            if (input.type === 'password') {
-                input.type = 'text';
-                btn.textContent = 'Hide';
+        function togglePassword(id, plainPassword) {
+            const span = document.getElementById(`pass-${id}`);
+            if (span.innerText === '••••••••') {
+                span.innerText = plainPassword;
+                span.classList.remove('text-slate-500');
+                span.classList.add('text-emerald-400');
             } else {
-                input.type = 'password';
-                btn.textContent = 'Show';
+                span.innerText = '••••••••';
+                span.classList.remove('text-emerald-400');
+                span.classList.add('text-slate-500');
             }
         }
 
-        function copyPassword(text, btn) {
-            navigator.clipboard.writeText(text);
-            const original = btn.textContent;
-            btn.textContent = 'Copied!';
-            setTimeout(() => btn.textContent = original, 1500);
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Password copied to clipboard!');
+            });
         }
 
-        function generateStrongPassword() {
-            const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+';
-            let pass = '';
-            for (let i = 0; i < 16; i++) {
-                pass += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            document.getElementById('accountPass').value = pass;
-        }
-
-        function filterVault() {
-            const query = document.getElementById('searchInput').value.toLowerCase();
-            const filtered = cachedEntries.filter(item => 
-                item.account_name.toLowerCase().includes(query) || 
-                item.username.toLowerCase().includes(query)
-            );
-            renderVault(filtered);
-        }
-
-        function escapeHTML(str) {
-            return str.replace(/[&<>'"]/g, tag => ({
-                '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
-            }[tag]));
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         }
     </script>
 </body>
