@@ -1,294 +1,916 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Family Password Manager</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#080d18">
+<title>SecureManager — Family Password Vault</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+:root {
+  color-scheme: dark;
+  --bg:#080d18;
+  --panel:#101a2b;
+  --line:#26364d;
+  --muted:#9aabc2;
+  --text:#edf4ff;
+  --blue:#6ea8ff;
+  --green:#48d6a0;
+  --red:#ff7777;
+}
+* {box-sizing:border-box}
+body {
+  margin:0;min-height:100vh;
+  background:radial-gradient(ellipse at 15% 0%,#142744 0,transparent 40%),
+  radial-gradient(ellipse at 100% 20%,#14243b 0,transparent 35%),var(--bg);
+  color:var(--text);
+  font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+}
+button,input {font:inherit}
+button {
+  cursor:pointer;border:0;border-radius:10px;
+  padding:10px 14px;font-weight:650;transition:.18s;
+}
+button:disabled {opacity:.55;cursor:not-allowed}
+.wrap {width:min(920px,calc(100% - 32px));margin:auto}
+.top {
+  display:flex;align-items:center;justify-content:space-between;
+  padding:22px 0;border-bottom:1px solid #ffffff16;
+}
+.brand {display:flex;align-items:center;gap:12px}
+.logo {
+  width:42px;height:42px;border-radius:13px;
+  display:grid;place-items:center;
+  background:linear-gradient(135deg,#70aaff,#56e0bd);
+  color:#06101d;font-size:22px;font-weight:900;
+}
+h1 {font-size:19px;margin:0}
+.subbrand {font-size:12px;color:var(--muted)}
+.status {
+  font-size:12px;color:var(--green);
+  border:1px solid #48d6a044;padding:6px 10px;border-radius:99px;
+}
+main {padding:36px 0 60px}
+.hero {margin-bottom:24px}
+.eyebrow {
+  color:var(--green);font-size:11px;font-weight:800;
+  letter-spacing:2px;text-transform:uppercase;
+}
+h2 {font-size:clamp(27px,5vw,38px);line-height:1.12;margin:9px 0}
+.hero p {color:var(--muted);max-width:650px}
+.panel {
+  background:linear-gradient(145deg,#121f33ed,#0d1727f2);
+  border:1px solid var(--line);border-radius:18px;
+  padding:24px;box-shadow:0 18px 60px #0005;
+}
+.narrow {max-width:480px;margin:28px auto}
+.panel h3 {margin:0 0 16px;font-size:18px}
+label {
+  display:block;font-size:12px;color:#b6c5d9;
+  margin:0 0 6px;font-weight:650;
+}
+input {
+  width:100%;background:#080f1c;border:1px solid #31445f;
+  color:white;border-radius:10px;padding:12px 13px;outline:none;
+}
+input:focus {border-color:var(--blue);box-shadow:0 0 0 3px #6ea8ff20}
+.field {margin-bottom:14px}
+.primary {
+  background:linear-gradient(135deg,#75adff,#4dd6b1);
+  color:#061321;
+}
+.primary:hover {filter:brightness(1.08);transform:translateY(-1px)}
+.secondary {background:#22324a;color:#e7f0ff;border:1px solid #344b69}
+.danger {background:#3a2029;color:#ffb0b0;border:1px solid #64313e}
+.small {padding:7px 10px;font-size:12px}
+.muted {color:var(--muted);font-size:13px}
+.message {min-height:20px;margin:12px 0 0;font-size:13px;color:var(--muted)}
+.message.error {color:var(--red)}
+.message.good {color:var(--green)}
+.hidden {display:none!important}
+.userbar {display:flex;gap:12px;align-items:center}
+.useremail {color:var(--muted);font-size:13px;overflow-wrap:anywhere}
+.dashgrid {display:grid;grid-template-columns:1fr;gap:18px}
+.formgrid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.full {grid-column:1/-1}
+.actions {display:flex;gap:9px;flex-wrap:wrap}
+.toolbar {
+  display:flex;align-items:center;justify-content:space-between;
+  gap:14px;margin-bottom:14px;
+}
+.toolbar input {max-width:340px}
+.entry {
+  background:#0a1321;border:1px solid #293b54;
+  border-radius:13px;padding:15px;margin-top:11px;
+  display:flex;justify-content:space-between;gap:16px;align-items:center;
+}
+.entry h4 {margin:0 0 3px;color:#9fc4ff;font-size:15px}
+.entry p {margin:2px 0;color:#aebdd0;font-size:13px;overflow-wrap:anywhere}
+.passline {font-family:ui-monospace,monospace;color:#e7f0ff}
+.entry-actions {display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+.empty {text-align:center;padding:30px 10px;color:var(--muted)}
+footer {
+  text-align:center;color:#72839a;font-size:12px;
+  padding:20px;border-top:1px solid #ffffff12;
+}
+@media(max-width:650px) {
+  .top {align-items:flex-start}
+  .status {display:none}
+  .panel {padding:18px}
+  .formgrid {grid-template-columns:1fr}
+  .full {grid-column:auto}
+  .entry {align-items:flex-start;flex-direction:column}
+  .entry-actions {justify-content:flex-start}
+  .toolbar {align-items:stretch;flex-direction:column}
+  .toolbar input {max-width:none}
+  .useremail {display:none}
+}
+</style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between">
 
-    <!-- Navbar -->
-    <header class="bg-slate-800 border-b border-slate-700 p-4 shadow-md">
-        <div class="max-w-4xl mx-auto flex justify-between items-center">
-            <h1 class="text-xl font-bold tracking-wide">Family Password Manager</h1>
-            <div id="user-info" class="hidden flex items-center gap-4">
-                <span id="user-email" class="text-sm text-slate-300"></span>
-                <button onclick="logout()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm transition">Logout</button>
-            </div>
+<body>
+
+<header class="wrap top">
+  <div class="brand">
+    <div class="logo">S</div>
+    <div>
+      <h1>SecureManager</h1>
+      <div class="subbrand">Private family password vault</div>
+    </div>
+  </div>
+
+  <div class="userbar">
+    <span class="status">● Encrypted vault</span>
+    <span id="user-email" class="useremail"></span>
+    <button id="logout-btn" class="secondary small hidden" type="button">Sign out</button>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="hero">
+    <div class="eyebrow">PRIVATE • PERSONAL • ENCRYPTED</div>
+    <h2>Your accounts, safely organised.</h2>
+    <p>Keep account names, usernames and passwords together.
+    Each signed-in user can access only their own vault.</p>
+  </section>
+
+  <!-- LOGIN -->
+  <section id="auth-panel" class="panel narrow">
+    <h3>Sign in to your vault</h3>
+
+    <form id="login-form">
+      <div class="field">
+        <label for="email">Email address</label>
+        <input id="email" type="email" autocomplete="username"
+        required placeholder="you@example.com">
+      </div>
+
+      <div class="field">
+        <label for="login-password">Account password</label>
+        <input id="login-password" type="password"
+        autocomplete="current-password" required
+        placeholder="Your Supabase account password">
+      </div>
+
+      <button id="login-btn" class="primary" type="submit"
+      style="width:100%">Sign in</button>
+    </form>
+
+    <p class="muted">Access is invitation-only.
+    Ask the vault owner to create your account.</p>
+
+    <p id="auth-message" class="message" role="status"></p>
+  </section>
+
+  <!-- VAULT UNLOCK -->
+  <section id="unlock-panel" class="panel narrow hidden">
+    <h3>Unlock your encrypted vault</h3>
+
+    <p class="muted">
+      Enter your separate vault passphrase. It is never sent
+      to Supabase. Use the same passphrase every time.
+    </p>
+
+    <form id="unlock-form">
+      <div class="field">
+        <label for="vault-passphrase">Vault passphrase</label>
+        <input id="vault-passphrase" type="password"
+        autocomplete="current-password" required minlength="12"
+        placeholder="At least 12 characters">
+      </div>
+
+      <button id="unlock-btn" class="primary" type="submit"
+      style="width:100%">Unlock vault</button>
+    </form>
+
+    <p id="unlock-message" class="message" role="status"></p>
+
+    <button id="back-to-login" class="secondary small"
+    type="button">Sign out</button>
+  </section>
+
+  <!-- DASHBOARD -->
+  <section id="dashboard" class="dashgrid hidden">
+
+    <section class="panel">
+      <div class="toolbar">
+        <div>
+          <h3 id="form-title">Add a new account</h3>
+          <p class="muted">
+            Your details are encrypted in your browser before saving.
+          </p>
         </div>
-    </header>
+        <button id="lock-btn" class="secondary small" type="button">
+          Lock vault
+        </button>
+      </div>
 
-    <!-- Main Container -->
-    <main class="max-w-4xl mx-auto p-4 w-full flex-grow">
+      <form id="credential-form" class="formgrid">
 
-        <!-- Auth Section -->
-        <div id="auth-container" class="max-w-md mx-auto mt-12 bg-slate-800 p-8 rounded-xl shadow-lg border border-slate-700">
-            <h2 id="auth-title" class="text-2xl font-bold mb-6 text-center">Login to Vault</h2>
-            
-            <form id="auth-form" onsubmit="handleAuth(event)" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium mb-1">Email / ID</label>
-                    <input type="email" id="auth-email" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:outline-none focus:border-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium mb-1">Master Password</label>
-                    <input type="password" id="auth-password" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:outline-none focus:border-blue-500">
-                </div>
-                <button type="submit" id="auth-submit-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded transition">Login</button>
-            </form>
+        <input id="entry-id" type="hidden">
 
-            <div class="mt-4 text-center">
-                <button type="button" onclick="toggleAuthMode()" id="auth-toggle-btn" class="text-sm text-blue-400 hover:underline">Don't have an account? Create one</button>
-            </div>
+        <div class="field">
+          <label for="platform">Account / website</label>
+          <input id="platform" maxlength="100" required
+          placeholder="e.g. Gmail">
         </div>
 
-        <!-- Dashboard Section -->
-        <div id="dashboard-container" class="hidden space-y-6 mt-6">
-            
-            <!-- Add / Edit Credential Form Card -->
-            <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-md">
-                <h3 id="form-heading" class="text-lg font-semibold mb-4">Add New Credential</h3>
-                <form id="credential-form" onsubmit="saveCredential(event)" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <input type="hidden" id="cred-id">
-                    <div>
-                        <label class="block text-xs uppercase text-slate-400 mb-1">Platform Name</label>
-                        <input type="text" id="platform-name" placeholder="e.g. Gmail, Netflix" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white">
-                    </div>
-                    <div>
-                        <label class="block text-xs uppercase text-slate-400 mb-1">Username / ID</label>
-                        <input type="text" id="platform-username" placeholder="e.g. user@gmail.com" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white">
-                    </div>
-                    <div>
-                        <label class="block text-xs uppercase text-slate-400 mb-1">Password</label>
-                        <input type="text" id="platform-password" placeholder="Password" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white">
-                    </div>
-                    <div class="md:col-span-3 flex gap-2">
-                        <button type="submit" id="save-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded text-sm font-medium transition">Save Credential</button>
-                        <button type="button" id="cancel-edit-btn" onclick="resetForm()" class="hidden bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded text-sm transition">Cancel</button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Credentials List -->
-            <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-md">
-                <h3 class="text-lg font-semibold mb-4">Saved Credentials</h3>
-                <div id="credentials-list" class="space-y-3">
-                    <p class="text-slate-400 text-sm">No credentials saved yet.</p>
-                </div>
-            </div>
-
+        <div class="field">
+          <label for="username">Username / email</label>
+          <input id="username" maxlength="200" required
+          placeholder="name@example.com">
         </div>
 
-    </main>
+        <div class="field full">
+          <label for="password">Password</label>
+          <div style="display:flex;gap:8px">
+            <input id="password" type="password" required
+            autocomplete="off" placeholder="Enter password">
+            <button id="generate-btn" class="secondary"
+            type="button">Generate</button>
+          </div>
+        </div>
 
-    <!-- Footer -->
-    <footer class="text-center py-4 text-xs text-slate-500 border-t border-slate-800">
-        Secure Family Password Manager &bull; Client-side Encrypted
-    </footer>
+        <div class="actions full">
+          <button id="save-btn" class="primary" type="submit">
+            Save account
+          </button>
+          <button id="cancel-btn" class="secondary hidden"
+          type="button">Cancel edit</button>
+        </div>
 
-    <!-- App Logic Script -->
-    <script>
-        const SUPABASE_URL = 'https://jrdfoqijyddfzmplhdlc.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_kZFmMFEpRaTBBpEdzltVcQ_QHOacEah';
+      </form>
 
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      <p id="save-message" class="message" role="status"></p>
+    </section>
 
-        let isSignUpMode = false;
-        let currentUser = null;
-        let masterKey = '';
+    <!-- SAVED ACCOUNTS -->
+    <section class="panel">
 
-        window.addEventListener('DOMContentLoaded', async () => {
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (session) {
-                currentUser = session.user;
-                masterKey = session.access_token;
-                showDashboard();
-            }
-        });
+      <div class="toolbar">
+        <div>
+          <h3 style="margin:0">Your saved accounts</h3>
+          <p id="entry-count" class="muted">0 accounts</p>
+        </div>
 
-        function toggleAuthMode() {
-            isSignUpMode = !isSignUpMode;
-            document.getElementById('auth-title').innerText = isSignUpMode ? 'Create Account' : 'Login to Vault';
-            document.getElementById('auth-submit-btn').innerText = isSignUpMode ? 'Sign Up' : 'Login';
-            document.getElementById('auth-toggle-btn').innerText = isSignUpMode ? 'Already have an account? Login' : "Don't have an account? Create one";
-        }
+        <input id="search" type="search"
+        placeholder="Search accounts...">
+      </div>
 
-        async function handleAuth(event) {
-            event.preventDefault();
-            const email = document.getElementById('auth-email').value;
-            const password = document.getElementById('auth-password').value;
+      <div id="entries">
+        <div class="empty">No accounts saved yet.</div>
+      </div>
 
-            if (isSignUpMode) {
-                const { data, error } = await supabaseClient.auth.signUp({ email, password });
-                if (error) {
-                    alert('Error: ' + error.message);
-                } else {
-                    alert('Account created successfully! You can now log in.');
-                    isSignUpMode = false;
-                    toggleAuthMode();
-                }
-            } else {
-                const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-                if (error) {
-                    alert('Login failed: ' + error.message);
-                } else {
-                    currentUser = data.user;
-                    masterKey = data.session.access_token;
-                    showDashboard();
-                }
-            }
-        }
+      <p id="list-message" class="message" role="status"></p>
 
-        async function logout() {
-            await supabaseClient.auth.signOut();
-            currentUser = null;
-            masterKey = '';
-            document.getElementById('dashboard-container').classList.add('hidden');
-            document.getElementById('auth-container').classList.remove('hidden');
-            document.getElementById('user-info').classList.add('hidden');
-            document.getElementById('auth-form').reset();
-        }
+    </section>
+  </section>
 
-        function showDashboard() {
-            document.getElementById('auth-container').classList.add('hidden');
-            document.getElementById('dashboard-container').classList.remove('hidden');
-            document.getElementById('user-info').classList.remove('hidden');
-            document.getElementById('user-email').innerText = currentUser.email;
-            loadCredentials();
-        }
+</main>
 
-        async function loadCredentials() {
-            const { data, error } = await supabaseClient
-                .from('credentials')
-                .select('*')
-                .order('created_at', { ascending: false });
+<footer>
+  SecureManager · Keep your vault passphrase private and backed up safely.
+</footer>
 
-            const listContainer = document.getElementById('credentials-list');
-            if (error) {
-                listContainer.innerHTML = `<p class="text-red-400 text-sm">Failed to load credentials: ${error.message}</p>`;
-                return;
-            }
+<script>
+(() => {
+'use strict';
 
-            if (!data || data.length === 0) {
-                listContainer.innerHTML = `<p class="text-slate-400 text-sm">No credentials saved yet.</p>`;
-                return;
-            }
+/* SUPABASE CONFIGURATION */
 
-            listContainer.innerHTML = '';
-            data.forEach(item => {
-                let decryptedPlatform = item.platform;
-                let decryptedUsername = item.username;
-                let decryptedPassword = '';
-                
-                try {
-                    decryptedPlatform = CryptoJS.AES.decrypt(item.platform, masterKey).toString(CryptoJS.enc.Utf8) || item.platform;
-                    decryptedUsername = CryptoJS.AES.decrypt(item.username, masterKey).toString(CryptoJS.enc.Utf8) || item.username;
-                    decryptedPassword = CryptoJS.AES.decrypt(item.password, masterKey).toString(CryptoJS.enc.Utf8);
-                } catch(e) {
-                    decryptedPassword = 'Decryption Error';
-                }
+const SUPABASE_URL =
+'https://jrdfoqijyddfzmplhdlc.supabase.co';
 
-                const card = document.createElement('div');
-                card.className = "bg-slate-900 p-4 rounded-lg border border-slate-700 flex flex-col md:flex-row justify-between items-start md:items-center gap-4";
-                card.innerHTML = `
-                    <div>
-                        <h4 class="font-bold text-base text-blue-400">${escapeHtml(decryptedPlatform)}</h4>
-                        <p class="text-sm text-slate-300">ID/User: <span class="font-mono text-slate-100">${escapeHtml(decryptedUsername)}</span></p>
-                        <p class="text-sm text-slate-400">Password: <span id="pass-${item.id}" class="font-mono text-slate-500">••••••••</span></p>
-                    </div>
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <button type="button" onclick="togglePassword('${item.id}', '${escapeHtml(decryptedPassword)}')" class="bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded text-xs">Show</button>
-                        <button type="button" onclick="copyToClipboard('${escapeHtml(decryptedPassword)}')" class="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-xs">Copy</button>
-                        <button type="button" onclick="editCredential('${item.id}', '${escapeHtml(decryptedPlatform)}', '${escapeHtml(decryptedUsername)}', '${escapeHtml(decryptedPassword)}')" class="bg-amber-600 hover:bg-amber-700 px-3 py-1 rounded text-xs">Edit</button>
-                        <button type="button" onclick="deleteCredential('${item.id}')" class="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-xs">Delete</button>
-                    </div>
-                `;
-                listContainer.appendChild(card);
-            });
-        }
+const SUPABASE_PUBLISHABLE_KEY =
+'sb_publishable_kZFmMFEpRaTBBpEdzltVcQ_QHOacEah';
 
-        async function saveCredential(event) {
-            event.preventDefault();
-            const id = document.getElementById('cred-id').value;
-            const platform = document.getElementById('platform-name').value;
-            const username = document.getElementById('platform-username').value;
-            const password = document.getElementById('platform-password').value;
+const TABLE = 'vault_items';
+const ITERATIONS = 310000;
 
-            const encPlatform = CryptoJS.AES.encrypt(platform, masterKey).toString();
-            const encUsername = CryptoJS.AES.encrypt(username, masterKey).toString();
-            const encPassword = CryptoJS.AES.encrypt(password, masterKey).toString();
+const $ = id => document.getElementById(id);
 
-            if (id) {
-                const { error } = await supabaseClient
-                    .from('credentials')
-                    .update({ platform: encPlatform, username: encUsername, password: encPassword })
-                    .eq('id', id);
+const authPanel = $('auth-panel');
+const unlockPanel = $('unlock-panel');
+const dashboard = $('dashboard');
 
-                if (error) alert('Update failed: ' + error.message);
-            } else {
-                const { error } = await supabaseClient
-                    .from('credentials')
-                    .insert([{ platform: encPlatform, username: encUsername, password: encPassword, user_id: currentUser.id }]);
+let supabaseClient = null;
+let currentUser = null;
+let vaultPassphrase = '';
+let entries = [];
 
-                if (error) alert('Save failed: ' + error.message);
-            }
+/* GENERAL HELPERS */
 
-            resetForm();
-            loadCredentials();
-        }
+function message(id,text,type='') {
+  const el = $(id);
+  el.textContent = text;
+  el.className = 'message' + (type ? ' ' + type : '');
+}
 
-        function editCredential(id, platform, username, password) {
-            document.getElementById('cred-id').value = id;
-            document.getElementById('platform-name').value = platform;
-            document.getElementById('platform-username').value = username;
-            document.getElementById('platform-password').value = password;
-            document.getElementById('form-heading').innerText = 'Edit Credential';
-            document.getElementById('save-btn').innerText = 'Update Credential';
-            document.getElementById('cancel-edit-btn').classList.remove('hidden');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+function showOnly(panel) {
+  [authPanel,unlockPanel,dashboard].forEach(p =>
+    p.classList.add('hidden')
+  );
+  panel.classList.remove('hidden');
+}
 
-        async function deleteCredential(id) {
-            if (confirm('Are you sure you want to delete this credential?')) {
-                const { error } = await supabaseClient.from('credentials').delete().eq('id', id);
-                if (error) alert('Delete failed: ' + error.message);
-                loadCredentials();
-            }
-        }
+function setBusy(button,busy,label) {
+  button.disabled = busy;
+  if(label) button.textContent = busy ? 'Please wait…' : label;
+}
 
-        function resetForm() {
-            document.getElementById('credential-form').reset();
-            document.getElementById('cred-id').value = '';
-            document.getElementById('form-heading').innerText = 'Add New Credential';
-            document.getElementById('save-btn').innerText = 'Save Credential';
-            document.getElementById('cancel-edit-btn').classList.add('hidden');
-        }
+/* ENCRYPTION HELPERS */
 
-        function togglePassword(id, plainPassword) {
-            const span = document.getElementById(`pass-${id}`);
-            if (span.innerText === '••••••••') {
-                span.innerText = plainPassword;
-                span.classList.remove('text-slate-500');
-                span.classList.add('text-emerald-400');
-            } else {
-                span.innerText = '••••••••';
-                span.classList.remove('text-emerald-400');
-                span.classList.add('text-slate-500');
-            }
-        }
+function bytesToBase64(bytes) {
+  let binary = '';
+  bytes.forEach(b => binary += String.fromCharCode(b));
+  return btoa(binary);
+}
 
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                alert('Password copied to clipboard!');
-            });
-        }
+function base64ToBytes(value) {
+  const binary = atob(value);
+  return Uint8Array.from(binary,c => c.charCodeAt(0));
+}
 
-        function escapeHtml(str) {
-            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-        }
-    </script>
+async function deriveKey(passphrase,salt) {
+  const material = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(passphrase),
+    'PBKDF2',
+    false,
+    ['deriveKey']
+  );
+
+  return crypto.subtle.deriveKey(
+    {
+      name:'PBKDF2',
+      salt,
+      iterations:ITERATIONS,
+      hash:'SHA-256'
+    },
+    material,
+    {name:'AES-GCM',length:256},
+    false,
+    ['encrypt','decrypt']
+  );
+}
+
+async function encryptRecord(record) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+
+  const key = await deriveKey(vaultPassphrase,salt);
+
+  const plain = new TextEncoder().encode(
+    JSON.stringify(record)
+  );
+
+  const encrypted = await crypto.subtle.encrypt(
+    {name:'AES-GCM',iv},
+    key,
+    plain
+  );
+
+  return JSON.stringify({
+    v:1,
+    salt:bytesToBase64(salt),
+    iv:bytesToBase64(iv),
+    data:bytesToBase64(new Uint8Array(encrypted))
+  });
+}
+
+async function decryptRecord(payload) {
+  const box = JSON.parse(payload);
+
+  if(box.v !== 1 || !box.salt || !box.iv || !box.data) {
+    throw new Error('Unsupported encrypted record.');
+  }
+
+  const salt = base64ToBytes(box.salt);
+  const iv = base64ToBytes(box.iv);
+  const data = base64ToBytes(box.data);
+
+  const key = await deriveKey(vaultPassphrase,salt);
+
+  const plain = await crypto.subtle.decrypt(
+    {name:'AES-GCM',iv},
+    key,
+    data
+  );
+
+  return JSON.parse(
+    new TextDecoder().decode(plain)
+  );
+}
+
+/* LOAD ACCOUNTS */
+
+async function loadCredentials() {
+  message('list-message','Loading your encrypted accounts…');
+
+  const {data,error} = await supabaseClient
+    .from(TABLE)
+    .select('id, encrypted_payload, created_at')
+    .eq('user_id',currentUser.id)
+    .order('created_at',{ascending:false});
+
+  if(error) throw error;
+
+  const decoded = [];
+
+  for(const row of (data || [])) {
+    const record = await decryptRecord(row.encrypted_payload);
+
+    decoded.push({
+      ...record,
+      id:row.id,
+      created_at:row.created_at
+    });
+  }
+
+  entries = decoded;
+
+  renderEntries();
+  message('list-message','');
+}
+
+/* DISPLAY ACCOUNTS */
+
+function renderEntries() {
+  const container = $('entries');
+  container.replaceChildren();
+
+  const query = $('search').value.trim().toLowerCase();
+
+  const filtered = entries.filter(e =>
+    (e.platform || '').toLowerCase().includes(query) ||
+    (e.username || '').toLowerCase().includes(query)
+  );
+
+  $('entry-count').textContent =
+    `${filtered.length} of ${entries.length} accounts`;
+
+  if(!filtered.length) {
+    const empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.textContent = entries.length
+      ? 'No matching accounts.'
+      : 'No accounts saved yet. Add your first account above.';
+
+    container.appendChild(empty);
+    return;
+  }
+
+  for(const item of filtered) {
+
+    const card = document.createElement('article');
+    card.className = 'entry';
+
+    const details = document.createElement('div');
+    details.style.minWidth = '0';
+
+    const title = document.createElement('h4');
+    title.textContent = item.platform;
+
+    const user = document.createElement('p');
+    user.textContent = item.username;
+
+    const pass = document.createElement('p');
+    pass.className = 'passline';
+    pass.textContent = 'Password: ••••••••';
+
+    details.append(title,user,pass);
+
+    const actions = document.createElement('div');
+    actions.className = 'entry-actions';
+
+    /* SHOW PASSWORD */
+
+    const show = document.createElement('button');
+    show.className = 'secondary small';
+    show.textContent = 'Show';
+
+    show.addEventListener('click',() => {
+      const visible = pass.dataset.visible === '1';
+
+      pass.textContent = visible
+        ? 'Password: ••••••••'
+        : 'Password: ' + item.password;
+
+      pass.dataset.visible = visible ? '0' : '1';
+      show.textContent = visible ? 'Show' : 'Hide';
+    });
+
+    /* COPY PASSWORD */
+
+    const copy = document.createElement('button');
+    copy.className = 'secondary small';
+    copy.textContent = 'Copy';
+
+    copy.addEventListener('click',async () => {
+      try {
+        await navigator.clipboard.writeText(item.password);
+        copy.textContent = 'Copied';
+        setTimeout(() => copy.textContent='Copy',1300);
+      } catch {
+        message(
+          'list-message',
+          'Clipboard blocked. Use Show and copy manually.',
+          'error'
+        );
+      }
+    });
+
+    /* EDIT ACCOUNT */
+
+    const edit = document.createElement('button');
+    edit.className = 'secondary small';
+    edit.textContent = 'Edit';
+
+    edit.addEventListener('click',() => {
+      $('entry-id').value = item.id;
+      $('platform').value = item.platform;
+      $('username').value = item.username;
+      $('password').value = item.password;
+
+      $('form-title').textContent = 'Edit account';
+      $('save-btn').textContent = 'Update account';
+      $('cancel-btn').classList.remove('hidden');
+
+      window.scrollTo({top:0,behavior:'smooth'});
+    });
+
+    /* DELETE ACCOUNT */
+
+    const del = document.createElement('button');
+    del.className = 'danger small';
+    del.textContent = 'Delete';
+
+    del.addEventListener('click',async () => {
+      if(!confirm(`Delete the saved ${item.platform} account?`)) {
+        return;
+      }
+
+      del.disabled = true;
+
+      const {error} = await supabaseClient
+        .from(TABLE)
+        .delete()
+        .eq('id',item.id)
+        .eq('user_id',currentUser.id);
+
+      if(error) {
+        message('list-message','Delete failed: '+error.message,'error');
+        del.disabled = false;
+        return;
+      }
+
+      try {
+        await loadCredentials();
+      } catch(e) {
+        message('list-message','Could not refresh: '+e.message,'error');
+      }
+    });
+
+    actions.append(show,copy,edit,del);
+    card.append(details,actions);
+    container.appendChild(card);
+  }
+}
+
+/* RESET FORM */
+
+function resetForm() {
+  $('credential-form').reset();
+  $('entry-id').value = '';
+
+  $('form-title').textContent = 'Add a new account';
+  $('save-btn').textContent = 'Save account';
+
+  $('cancel-btn').classList.add('hidden');
+
+  message('save-message','');
+}
+
+/* LOGIN */
+
+async function handleLogin(event) {
+  event.preventDefault();
+
+  const button = $('login-btn');
+
+  setBusy(button,true);
+  message('auth-message','Signing in…');
+
+  try {
+    const {data,error} = await supabaseClient.auth.signInWithPassword({
+      email:$('email').value.trim(),
+      password:$('login-password').value
+    });
+
+    if(error) throw error;
+
+    currentUser = data.user;
+
+    $('login-password').value = '';
+    $('user-email').textContent = currentUser.email || '';
+    $('logout-btn').classList.remove('hidden');
+    $('vault-passphrase').value = '';
+
+    message('unlock-message','');
+
+    showOnly(unlockPanel);
+
+  } catch(e) {
+    message(
+      'auth-message',
+      e.message || 'Sign-in failed. Check your details.',
+      'error'
+    );
+  } finally {
+    setBusy(button,false,'Sign in');
+  }
+}
+
+/* UNLOCK VAULT */
+
+async function handleUnlock(event) {
+  event.preventDefault();
+
+  const button = $('unlock-btn');
+  setBusy(button,true);
+
+  const candidate = $('vault-passphrase').value;
+
+  if(candidate.length < 12) {
+    message(
+      'unlock-message',
+      'Use a vault passphrase with at least 12 characters.',
+      'error'
+    );
+    setBusy(button,false,'Unlock vault');
+    return;
+  }
+
+  vaultPassphrase = candidate;
+
+  try {
+    const {data,error} = await supabaseClient
+      .from(TABLE)
+      .select('id,encrypted_payload,created_at')
+      .eq('user_id',currentUser.id)
+      .order('created_at',{ascending:false});
+
+    if(error) throw error;
+
+    const decoded = [];
+
+    for(const row of (data || [])) {
+      decoded.push({
+        ...await decryptRecord(row.encrypted_payload),
+        id:row.id,
+        created_at:row.created_at
+      });
+    }
+
+    entries = decoded;
+    $('search').value = '';
+
+    renderEntries();
+    message('list-message','');
+
+    showOnly(dashboard);
+
+  } catch(e) {
+    vaultPassphrase = '';
+    entries = [];
+
+    message(
+      'unlock-message',
+      e.message && /decrypt|operation|data|json/i.test(e.message)
+        ? 'Could not unlock. Check your vault passphrase.'
+        : 'Could not load vault: '+(e.message || 'Unknown error'),
+      'error'
+    );
+
+  } finally {
+    setBusy(button,false,'Unlock vault');
+  }
+}
+
+/* SAVE AND UPDATE */
+
+async function saveCredential(event) {
+  event.preventDefault();
+
+  const button = $('save-btn');
+  setBusy(button,true);
+
+  try {
+    const record = {
+      platform:$('platform').value.trim(),
+      username:$('username').value.trim(),
+      password:$('password').value
+    };
+
+    if(!record.platform || !record.username || !record.password) {
+      throw new Error('Please complete all three fields.');
+    }
+
+    const encrypted_payload = await encryptRecord(record);
+    const id = $('entry-id').value;
+
+    let result;
+
+    if(id) {
+      result = await supabaseClient
+        .from(TABLE)
+        .update({encrypted_payload})
+        .eq('id',id)
+        .eq('user_id',currentUser.id);
+    } else {
+      result = await supabaseClient
+        .from(TABLE)
+        .insert([{
+          user_id:currentUser.id,
+          encrypted_payload
+        }]);
+    }
+
+    if(result.error) throw result.error;
+
+    resetForm();
+
+    await loadCredentials();
+
+    message(
+      'save-message',
+      'Account saved successfully.',
+      'good'
+    );
+
+  } catch(e) {
+    message(
+      'save-message',
+      'Save failed: '+(e.message || 'Unknown error'),
+      'error'
+    );
+
+  } finally {
+    setBusy(
+      button,
+      false,
+      $('entry-id').value ? 'Update account' : 'Save account'
+    );
+  }
+}
+
+/* LOGOUT */
+
+async function logout() {
+  await supabaseClient.auth.signOut();
+
+  currentUser = null;
+  vaultPassphrase = '';
+  entries = [];
+
+  $('user-email').textContent = '';
+  $('logout-btn').classList.add('hidden');
+
+  $('login-form').reset();
+  $('vault-passphrase').value = '';
+
+  resetForm();
+
+  showOnly(authPanel);
+
+  message('auth-message','You have signed out.','good');
+}
+
+/* PASSWORD GENERATOR */
+
+function generatePassword() {
+  const chars =
+    'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%&*_-+=';
+
+  const random = new Uint32Array(20);
+
+  crypto.getRandomValues(random);
+
+  $('password').value = Array.from(
+    random,
+    n => chars[n % chars.length]
+  ).join('');
+
+  $('password').type = 'text';
+}
+
+/* INITIALIZATION */
+
+async function init() {
+
+  if(!window.supabase || !window.supabase.createClient) {
+    message(
+      'auth-message',
+      'Supabase library did not load. Check your internet connection.',
+      'error'
+    );
+    return;
+  }
+
+  if(!window.isSecureContext || !crypto.subtle) {
+    message(
+      'auth-message',
+      'This site needs HTTPS for secure encryption.',
+      'error'
+    );
+    return;
+  }
+
+  supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY,
+    {
+      auth:{
+        persistSession:true,
+        autoRefreshToken:true,
+        detectSessionInUrl:true
+      }
+    }
+  );
+
+  $('login-form').addEventListener('submit',handleLogin);
+  $('unlock-form').addEventListener('submit',handleUnlock);
+  $('credential-form').addEventListener('submit',saveCredential);
+
+  $('logout-btn').addEventListener('click',logout);
+  $('back-to-login').addEventListener('click',logout);
+
+  $('lock-btn').addEventListener('click',() => {
+    vaultPassphrase = '';
+    entries = [];
+
+    resetForm();
+    $('vault-passphrase').value = '';
+
+    showOnly(unlockPanel);
+
+    message(
+      'unlock-message',
+      'Vault locked. Enter your passphrase to continue.'
+    );
+  });
+
+  $('cancel-btn').addEventListener('click',resetForm);
+  $('generate-btn').addEventListener('click',generatePassword);
+  $('search').addEventListener('input',renderEntries);
+
+  const {data,error} = await supabaseClient.auth.getSession();
+
+  if(error) {
+    message('auth-message',error.message,'error');
+    return;
+  }
+
+  if(data.session) {
+    currentUser = data.session.user;
+
+    $('user-email').textContent = currentUser.email || '';
+    $('logout-btn').classList.remove('hidden');
+
+    showOnly(unlockPanel);
+
+  } else {
+    showOnly(authPanel);
+  }
+}
+
+window.addEventListener('DOMContentLoaded',init);
+
+})();
+</script>
+
 </body>
 </html>
