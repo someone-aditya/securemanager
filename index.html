@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Secure Family Password Manager</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tailwindcss-cdn@3.4.10/tailwindcss.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 </head>
@@ -31,17 +31,17 @@
             <form id="auth-form" onsubmit="handleAuth(event)" class="space-y-4">
                 <div>
                     <label class="block text-sm font-medium mb-1">Email / ID</label>
-                    <input type="email" id="auth-email" required class="w-full bg-slate-900 border border-slate-750 rounded p-2 text-white focus:outline-none focus:border-blue-500">
+                    <input type="email" id="auth-email" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:outline-none focus:border-blue-500">
                 </div>
                 <div>
                     <label class="block text-sm font-medium mb-1">Master Password</label>
-                    <input type="password" id="auth-password" required class="w-full bg-slate-900 border border-slate-750 rounded p-2 text-white focus:outline-none focus:border-blue-500">
+                    <input type="password" id="auth-password" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white focus:outline-none focus:border-blue-500">
                 </div>
                 <button type="submit" id="auth-submit-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded transition">Login</button>
             </form>
 
             <div class="mt-4 text-center">
-                <button onclick="toggleAuthMode()" id="auth-toggle-btn" class="text-sm text-blue-400 hover:underline">Don't have an account? Create one</button>
+                <button type="button" onclick="toggleAuthMode()" id="auth-toggle-btn" class="text-sm text-blue-400 hover:underline">Don't have an account? Create one</button>
             </div>
         </div>
 
@@ -76,7 +76,6 @@
             <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 shadow-md">
                 <h3 class="text-lg font-semibold mb-4">Saved Credentials</h3>
                 <div id="credentials-list" class="space-y-3">
-                    <!-- Populated dynamically -->
                     <p class="text-slate-400 text-sm">No credentials saved yet.</p>
                 </div>
             </div>
@@ -92,22 +91,20 @@
 
     <!-- App Logic Script -->
     <script>
-        // 1. CONFIGURE YOUR SUPABASE KEYS HERE
         const SUPABASE_URL = 'https://jrdfoqijyddfzmplhdlc.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_kZFmMFEpRaTBBpEdzltVcQ_QHOacEah';
 
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let isSignUpMode = false;
         let currentUser = null;
-        let masterKey = ''; // Derived from user session/password for client encryption
+        let masterKey = '';
 
-        // Check active session on load
         window.addEventListener('DOMContentLoaded', async () => {
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (session) {
                 currentUser = session.user;
-                masterKey = session.access_token; // Base encryption key layer
+                masterKey = session.access_token;
                 showDashboard();
             }
         });
@@ -182,7 +179,6 @@
 
             listContainer.innerHTML = '';
             data.forEach(item => {
-                // Decrypt client-side data
                 let decryptedPlatform = item.platform;
                 let decryptedUsername = item.username;
                 let decryptedPassword = '';
@@ -204,10 +200,10 @@
                         <p class="text-sm text-slate-400">Password: <span id="pass-${item.id}" class="font-mono text-slate-500">••••••••</span></p>
                     </div>
                     <div class="flex items-center gap-2 flex-wrap">
-                        <button onclick="togglePassword('${item.id}', '${escapeHtml(decryptedPassword)}')" class="bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded text-xs">Show</button>
-                        <button onclick="copyToClipboard('${escapeHtml(decryptedPassword)}')" class="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-xs">Copy</button>
-                        <button onclick="editCredential('${item.id}', '${escapeHtml(decryptedPlatform)}', '${escapeHtml(decryptedUsername)}', '${escapeHtml(decryptedPassword)}')" class="bg-amber-600 hover:bg-amber-700 px-3 py-1 rounded text-xs">Edit</button>
-                        <button onclick="deleteCredential('${item.id}')" class="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-xs">Delete</button>
+                        <button type="button" onclick="togglePassword('${item.id}', '${escapeHtml(decryptedPassword)}')" class="bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded text-xs">Show</button>
+                        <button type="button" onclick="copyToClipboard('${escapeHtml(decryptedPassword)}')" class="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-xs">Copy</button>
+                        <button type="button" onclick="editCredential('${item.id}', '${escapeHtml(decryptedPlatform)}', '${escapeHtml(decryptedUsername)}', '${escapeHtml(decryptedPassword)}')" class="bg-amber-600 hover:bg-amber-700 px-3 py-1 rounded text-xs">Edit</button>
+                        <button type="button" onclick="deleteCredential('${item.id}')" class="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-xs">Delete</button>
                     </div>
                 `;
                 listContainer.appendChild(card);
@@ -221,13 +217,11 @@
             const username = document.getElementById('platform-username').value;
             const password = document.getElementById('platform-password').value;
 
-            // Encrypt sensitive fields client-side
             const encPlatform = CryptoJS.AES.encrypt(platform, masterKey).toString();
             const encUsername = CryptoJS.AES.encrypt(username, masterKey).toString();
             const encPassword = CryptoJS.AES.encrypt(password, masterKey).toString();
 
             if (id) {
-                // Update existing
                 const { error } = await supabaseClient
                     .from('credentials')
                     .update({ platform: encPlatform, username: encUsername, password: encPassword })
@@ -235,7 +229,6 @@
 
                 if (error) alert('Update failed: ' + error.message);
             } else {
-                // Insert new
                 const { error } = await supabaseClient
                     .from('credentials')
                     .insert([{ platform: encPlatform, username: encUsername, password: encPassword, user_id: currentUser.id }]);
